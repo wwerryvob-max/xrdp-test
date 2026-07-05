@@ -12,6 +12,8 @@ To run this workflow, you need to add the following secrets in your repository s
 | :--- | :--- |
 | `PASS` | The password you want to use for the `root` user when logging into the desktop session. |
 | `CF_TOKEN` | Your Cloudflare Tunnel token. Used by `cloudflared` to expose the XRDP session securely to the internet without opening ports. |
+| `MEGA_USER` | *(Optional)* Your MEGA email address. If provided along with `MEGA_PASS`, the runner will automatically restore and backup your session data (`/root`) continuously to your MEGA account! |
+| `MEGA_PASS` | *(Optional)* Your MEGA password. Required if you are using `MEGA_USER` for automated backups. |
 
 ---
 
@@ -20,4 +22,5 @@ To run this workflow, you need to add the following secrets in your repository s
 - **XFCE4 Desktop Environment**: Lightweight and stable desktop session.
 - **Firefox Native ESR**: Pre-installed and patched to bypass sandbox issues inside virtualized GitHub runner environments.
 - **Debian 11 Docker Isolation**: Runs in a clean, native `debian:11` container, completely solving the RDP failsafe loop and D-Bus crashing issues inherent to GitHub runners.
+- **Automated Cloud Backup (MEGA)**: If you provide your MEGA login details, your `/root` folder (including browser profiles and desktop files) will be continuously synced to the cloud every 10 minutes and automatically restored on the next run!
 - **Auto-Restart Loop**: Automatically triggers a new run when the current run finishes to maintain a persistent environment (if desired).

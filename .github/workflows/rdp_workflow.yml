@@ -13,11 +13,27 @@ jobs:
     timeout-minutes: 3600
 
     steps:
-      - name: Start Debian 11 Container
+      - name: Setup MEGA Backup & Start Container
+        env:
+          MEGA_USER: ${{ secrets.MEGA_USER }}
+          MEGA_PASS: ${{ secrets.MEGA_PASS }}
         run: |
+          mkdir -p /home/runner/userdata
+          
+          if [ -n "$MEGA_USER" ] && [ -n "$MEGA_PASS" ]; then
+              echo "MEGA credentials found. Installing rclone and restoring backup..."
+              sudo curl -s https://rclone.org/install.sh | sudo bash
+              rclone config create mega mega user "$MEGA_USER" pass "$MEGA_PASS"
+              
+              echo "Downloading previous session data from MEGA..."
+              rclone copy mega:rdp-backup /home/runner/userdata --exclude ".cache/**" || true
+          else
+              echo "No MEGA credentials found. Skipping backup restoration."
+          fi
+
           echo "Starting Debian 11 Docker container..."
-          # Run container in background, expose port 3389, and keep it running
-          docker run -d --name debian-rdp -p 3389:3389 debian:11 tail -f /dev/null
+          # Run container in background, expose port 3389, mount userdata to /root, and keep it running
+          docker run -d --name debian-rdp -p 3389:3389 -v /home/runner/userdata:/root debian:11 tail -f /dev/null
 
       - name: Install XFCE Desktop, Firefox & XRDP
         run: |
@@ -49,6 +65,7 @@ jobs:
       - name: Start Cloudflare Tunnel & Maintain Connection
         env:
           CF_TOKEN: ${{ secrets.CF_TOKEN }}
+          MEGA_USER: ${{ secrets.MEGA_USER }}
         run: |
           if [ -z "$CF_TOKEN" ]; then
               echo "Error: Secret 'CF_TOKEN' is missing."
@@ -73,10 +90,26 @@ jobs:
           
           END_TIME=$(($(date +%s) + 20700)) 
           
+          if [ -n "$MEGA_USER" ]; then
+              echo "Starting background MEGA backup sync..."
+              (
+                  while true; do
+                      sleep 600 # 10 minutes
+                      echo "[$(date)] Syncing /root data to MEGA..."
+                      rclone sync /home/runner/userdata mega:rdp-backup --exclude ".cache/**" || true
+                  done
+              ) &
+          fi
+          
           while [ $(date +%s) -lt $END_TIME ]; do
               echo "[$(date)] Debian 11 RDP Active - Session time remaining..."
               sleep 60
           done
+          
+          if [ -n "$MEGA_USER" ]; then
+              echo "Performing final backup before shutdown..."
+              rclone sync /home/runner/userdata mega:rdp-backup --exclude ".cache/**" || true
+          fi
 
       - name: 🔄 Auto-Restart Server
         if: always()
