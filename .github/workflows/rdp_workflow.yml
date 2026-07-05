@@ -68,8 +68,12 @@ jobs:
           docker exec debian-rdp bash -c "echo \"root:$MY_SECRET_PASS\" | chpasswd"
           
           echo "Configuring XRDP to use XFCE..."
-          docker exec debian-rdp bash -c "echo 'exec startxfce4' > /root/.xsession"
+          docker exec debian-rdp bash -c "echo 'exec dbus-launch --exit-with-session startxfce4' > /root/.xsession"
           docker exec debian-rdp bash -c "chmod +x /root/.xsession"
+          
+          echo "Setting default Web Browser for XFCE..."
+          docker exec debian-rdp bash -c "mkdir -p /root/.config/xfce4 && echo -e '[Configuration]\nWebBrowser=firefox' > /root/.config/xfce4/helpers.rc"
+          docker exec debian-rdp bash -c "ln -sf /usr/bin/firefox-esr /usr/bin/firefox"
           
           echo "Starting XRDP service..."
           docker exec debian-rdp bash -c "service xrdp start"
