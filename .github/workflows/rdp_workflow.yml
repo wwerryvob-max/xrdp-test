@@ -72,7 +72,7 @@ jobs:
           docker exec debian-rdp bash -c "chmod +x /root/.xsession"
           
           echo "Setting default Web Browser for XFCE..."
-          docker exec debian-rdp bash -c "mkdir -p /root/.config/xfce4 && echo -e '[Configuration]\nWebBrowser=firefox-esr' > /root/.config/xfce4/helpers.rc"
+          docker exec debian-rdp bash -c "mkdir -p /root/.config/xfce4 && echo -e '[Configuration]\nWebBrowser=firefox' > /root/.config/xfce4/helpers.rc"
           docker exec debian-rdp bash -c "update-alternatives --set x-www-browser /usr/bin/firefox-esr || true"
           
           echo "Starting XRDP service..."
