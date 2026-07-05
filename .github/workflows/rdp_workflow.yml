@@ -66,7 +66,7 @@ jobs:
           docker exec debian-rdp bash -c "DEBIAN_FRONTEND=noninteractive apt install -y dpkg-dev pulseaudio git build-essential autoconf libtool automake pkg-config libssl-dev libpam0g-dev libx11-dev libxfixes-dev libxrandr-dev libpulse-dev"
           
           echo "Compiling pulseaudio-module-xrdp..."
-          docker exec debian-rdp bash -c "cd /tmp && git clone --depth=1 https://github.com/neutrinolabs/pulseaudio-module-xrdp.git && cd pulseaudio-module-xrdp && ./scripts/install_pulseaudio_sources_apt_wrapper.sh && ./bootstrap && ./configure PULSE_DIR=/tmp/pulseaudio-module-xrdp/pulseaudio.src && make && make install"
+          docker exec debian-rdp bash -c "cd /tmp && git clone --depth=1 https://github.com/neutrinolabs/pulseaudio-module-xrdp.git && cd pulseaudio-module-xrdp && DEBIAN_FRONTEND=noninteractive apt-get build-dep -y pulseaudio && apt-get source pulseaudio && ln -s pulseaudio-* pulseaudio.src && cd pulseaudio.src && meson build && cd .. && ./bootstrap && ./configure PULSE_DIR=/tmp/pulseaudio-module-xrdp/pulseaudio.src && make && make install"
 
       - name: Configure Root User & XRDP
         env:
