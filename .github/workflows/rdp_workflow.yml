@@ -48,7 +48,7 @@ jobs:
           docker run -d --name debian-rdp -p 3389:3389 -v /home/runner/userdata:/root debian:11 tail -f /dev/null
           
           echo "Setting up Desktop and volume permissions..."
-          docker exec debian-rdp bash -c "mkdir -p /root/Desktop/SharedFolder"
+          docker exec debian-rdp bash -c "mkdir -p /root/Desktop/SavedFiles"
           docker exec debian-rdp bash -c "chown -R root:root /root"
 
       - name: Install XFCE Desktop, Firefox & XRDP
