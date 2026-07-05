@@ -45,7 +45,10 @@ jobs:
 
           echo "Starting Debian 11 Docker container..."
           # Run container in background, expose port 3389, mount userdata to /root, and keep it running
-          docker run -d --name debian-rdp --security-opt seccomp=unconfined --shm-size=1g -p 3389:3389 -v /home/runner/userdata:/root debian:11 tail -f /dev/null
+          docker run -d --name debian-rdp -p 3389:3389 -v /home/runner/userdata:/root debian:11 tail -f /dev/null
+          
+          echo "Fixing volume permissions for root..."
+          docker exec debian-rdp bash -c "chown -R root:root /root"
 
       - name: Install XFCE Desktop, Firefox & XRDP
         run: |
@@ -68,12 +71,8 @@ jobs:
           docker exec debian-rdp bash -c "echo \"root:$MY_SECRET_PASS\" | chpasswd"
           
           echo "Configuring XRDP to use XFCE..."
-          docker exec debian-rdp bash -c "echo 'exec dbus-launch --exit-with-session startxfce4' > /root/.xsession"
+          docker exec debian-rdp bash -c "echo 'exec startxfce4' > /root/.xsession"
           docker exec debian-rdp bash -c "chmod +x /root/.xsession"
-          
-          echo "Setting default Web Browser for XFCE..."
-          docker exec debian-rdp bash -c "mkdir -p /root/.config/xfce4 && echo -e '[Configuration]\nWebBrowser=firefox' > /root/.config/xfce4/helpers.rc"
-          docker exec debian-rdp bash -c "update-alternatives --set x-www-browser /usr/bin/firefox-esr || true"
           
           echo "Starting XRDP service..."
           docker exec debian-rdp bash -c "service xrdp start"
@@ -111,7 +110,7 @@ jobs:
                   while true; do
                       sleep 3600 # 1 hour
                       echo "[$(date)] Syncing /root data to $BACKUP_REMOTE..."
-                      rclone sync /home/runner/userdata "$BACKUP_REMOTE:rdp-backup" --exclude ".cache/**" || true
+                      sudo rclone --config /home/runner/.config/rclone/rclone.conf sync /home/runner/userdata "$BACKUP_REMOTE:rdp-backup" --exclude ".cache/**" || true
                   done
               ) &
           fi
@@ -123,7 +122,7 @@ jobs:
           
           if [ "$BACKUP_REMOTE" != "none" ]; then
               echo "Performing final backup to $BACKUP_REMOTE before shutdown..."
-              rclone sync /home/runner/userdata "$BACKUP_REMOTE:rdp-backup" --exclude ".cache/**" || true
+              sudo rclone --config /home/runner/.config/rclone/rclone.conf sync /home/runner/userdata "$BACKUP_REMOTE:rdp-backup" --exclude ".cache/**" || true
           fi
 
       - name: 🔄 Auto-Restart Server
