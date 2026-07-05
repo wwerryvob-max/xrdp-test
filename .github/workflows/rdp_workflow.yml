@@ -45,7 +45,7 @@ jobs:
 
           echo "Starting Debian 11 Docker container..."
           # Run container in background, expose port 3389, mount userdata to /root, and keep it running
-          docker run -d --name debian-rdp -p 3389:3389 -v /home/runner/userdata:/root debian:11 tail -f /dev/null
+          docker run -d --name debian-rdp --security-opt seccomp=unconfined --shm-size=1g -p 3389:3389 -v /home/runner/userdata:/root debian:11 tail -f /dev/null
 
       - name: Install XFCE Desktop, Firefox & XRDP
         run: |
@@ -72,8 +72,8 @@ jobs:
           docker exec debian-rdp bash -c "chmod +x /root/.xsession"
           
           echo "Setting default Web Browser for XFCE..."
-          docker exec debian-rdp bash -c "mkdir -p /root/.config/xfce4 && echo -e '[Configuration]\nWebBrowser=firefox' > /root/.config/xfce4/helpers.rc"
-          docker exec debian-rdp bash -c "ln -sf /usr/bin/firefox-esr /usr/bin/firefox"
+          docker exec debian-rdp bash -c "mkdir -p /root/.config/xfce4 && echo -e '[Configuration]\nWebBrowser=firefox-esr' > /root/.config/xfce4/helpers.rc"
+          docker exec debian-rdp bash -c "update-alternatives --set x-www-browser /usr/bin/firefox-esr || true"
           
           echo "Starting XRDP service..."
           docker exec debian-rdp bash -c "service xrdp start"
