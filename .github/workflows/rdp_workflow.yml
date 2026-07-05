@@ -94,7 +94,7 @@ jobs:
               echo "Starting background MEGA backup sync..."
               (
                   while true; do
-                      sleep 600 # 10 minutes
+                      sleep 3600 # 1 hour
                       echo "[$(date)] Syncing /root data to MEGA..."
                       rclone sync /home/runner/userdata mega:rdp-backup --exclude ".cache/**" || true
                   done
