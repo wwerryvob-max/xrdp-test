@@ -60,14 +60,14 @@ jobs:
           
           export XDG_SESSION_DESKTOP=xfce
           export XDG_CURRENT_DESKTOP=XFCE
-          export XDG_CONFIG_DIRS=/etc/xdg/xdg-xubuntu:/etc/xdg:/etc
+          export XDG_CONFIG_DIRS=/etc/xdg:/etc
           
-          exec dbus-launch --exit-with-session startxfce4
+          exec dbus-run-session -- startxfce4
           EOF'
           
           sudo chmod +x /etc/xrdp/startwm.sh
           
-          echo "exec dbus-launch --exit-with-session startxfce4" | sudo tee /home/RDP/.xsession
+          echo "exec dbus-run-session -- startxfce4" | sudo tee /home/RDP/.xsession
           sudo chown RDP:RDP /home/RDP/.xsession
           
           # Notice: We explicitly do NOT restart xrdp or dbus here!
@@ -98,9 +98,15 @@ jobs:
           echo -e "==================\n"
           
           END_TIME=$(($(date +%s) + 20700)) 
+          
+          echo "Starting log streaming..."
+          sudo touch /home/RDP/.xsession-errors /var/log/xrdp.log /var/log/xrdp-sesman.log
+          sudo chown RDP:RDP /home/RDP/.xsession-errors
+          tail -f /home/RDP/.xsession-errors /var/log/xrdp.log /var/log/xrdp-sesman.log &
+          
           while [ $(date +%s) -lt $END_TIME ]; do
               echo "[$(date)] Linux RDP Active - Session time remaining..."
-              sleep 300
+              sleep 60
           done
 
       - name: 🔄 Auto-Restart Server
