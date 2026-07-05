@@ -1,26 +1,85 @@
-# Headless Debian 11 XRDP + XFCE on GitHub Actions
+# 🚀 Headless Debian 11 XRDP + XFCE on GitHub Actions
 
-This repository contains a GitHub Actions workflow to launch a stable, headless Debian 11 desktop session via XRDP and XFCE inside a Docker container. Running the environment within an isolated Debian 11 container completely bypasses the custom D-Bus initialization restrictions of the default GitHub Ubuntu runner, preventing the "Unable to load a failsafe session" error.
+A robust, lightning-fast, and persistent GUI environment hosted inside an isolated **Debian 11** Docker container on GitHub Actions. Bypasses the default GitHub runner D-Bus limitations and provides seamless remote access with automated cloud backups.
 
 ---
 
-## Required GitHub Secrets
+## ✨ Features
 
-To run this workflow, you need to add the following secrets in your repository settings (**Settings -> Secrets and variables -> Actions -> New repository secret**):
-
-| Secret Name | Description |
+| Feature | Details |
 | :--- | :--- |
-| `PASS` | The password you want to use for the `root` user when logging into the desktop session. |
-| `CF_TOKEN` | Your Cloudflare Tunnel token. Used by `cloudflared` to expose the XRDP session securely to the internet without opening ports. |
-| `MEGA_USER` | *(Optional)* Your MEGA email address. If provided along with `MEGA_PASS`, the runner will automatically restore and backup your session data (`/root`) continuously to your MEGA account! |
-| `MEGA_PASS` | *(Optional)* Your MEGA password. Required if you are using `MEGA_USER` for automated backups. |
+| ⚡ **Native Docker Performance** | Runs inside a clean `debian:11` container at full native hardware speeds, completely solving D-Bus and XFCE failsafe loop issues. |
+| 🖥️ **Full Desktop Environment** | Lightweight XFCE4 desktop with Firefox ESR pre-installed. |
+| 🔒 **Secure Tunnel Access** | Access your desktop via Cloudflare Tunnel — no open ports required. |
+| 💾 **Dual-Cloud Backup** | Choose Google Drive or MEGA to persist your `/root` directory across restarts (browser profiles, files, desktop layouts included). |
+| ⏰ **Smart Incremental Sync** | Only uploads changed/new files and mirrors file deletions to the cloud every **1 hour** using `rclone sync`. |
+| 🔄 **Auto-Restart Loop** | Automatically triggers the next run on completion so your desktop stays alive persistently. |
 
 ---
 
-## Features
+## 🔑 GitHub Secrets Configuration
 
-- **XFCE4 Desktop Environment**: Lightweight and stable desktop session.
-- **Firefox Native ESR**: Pre-installed and patched to bypass sandbox issues inside virtualized GitHub runner environments.
-- **Debian 11 Docker Isolation**: Runs in a clean, native `debian:11` container, completely solving the RDP failsafe loop and D-Bus crashing issues inherent to GitHub runners.
-- **Automated Cloud Backup (MEGA)**: If you provide your MEGA login details, your `/root` folder (including browser profiles and desktop files) will be continuously synced to the cloud every 10 minutes and automatically restored on the next run!
-- **Auto-Restart Loop**: Automatically triggers a new run when the current run finishes to maintain a persistent environment (if desired).
+Go to **Settings ➡️ Secrets and variables ➡️ Actions ➡️ New repository secret** and add the following:
+
+| Secret Name | Required | Description |
+| :--- | :---: | :--- |
+| `PASS` | ✅ Yes | Password for the `root` user on the RDP desktop. |
+| `CF_TOKEN` | ✅ Yes | Your Cloudflare Tunnel token to securely expose the session. |
+| `GDRIVE_CONF` | ⭐ Optional | Rclone config block for Google Drive. **Takes priority over MEGA if both are set.** |
+| `MEGA_USER` | ⭐ Optional | Your MEGA email address. Used only if `GDRIVE_CONF` is not set. |
+| `MEGA_PASS` | ⭐ Optional | Your MEGA account password. Required alongside `MEGA_USER`. |
+
+> **Backup Priority:** Google Drive is used first. If `GDRIVE_CONF` is not set, MEGA is used. If neither is configured, the session runs without backups.
+
+---
+
+## 💾 Cloud Backup Setup
+
+### ☁️ Option A — Google Drive *(Recommended)*
+
+1. Download and install **[Rclone](https://rclone.org/downloads/)** on your local PC.
+2. Open a terminal and run:
+   ```bash
+   rclone config
+   ```
+3. Create a new remote — name it exactly **`gdrive`**, select **`drive`** (Google Drive) as the type, and follow the on-screen authentication flow.
+4. Once done, open your `rclone.conf` file:
+   - **Windows:** `C:\Users\<YourName>\AppData\Roaming\rclone\rclone.conf`
+   - **macOS/Linux:** `~/.config/rclone/rclone.conf`
+5. Copy the entire `[gdrive]` block and paste it as the value of the **`GDRIVE_CONF`** GitHub secret.
+
+#### 📋 Example `GDRIVE_CONF` Secret Value:
+```ini
+[gdrive]
+type = drive
+client_id = your_client_id.apps.googleusercontent.com
+client_secret = your_client_secret_here
+scope = drive
+token = {"access_token":"ya29.xxxxxxxxxxxx","token_type":"Bearer","refresh_token":"1//xxxxxxxxxxxx","expiry":"2026-07-05T12:00:00.000Z"}
+```
+
+> ⚠️ The remote **must** be named `[gdrive]` for the workflow to detect it correctly!
+
+---
+
+### 🟠 Option B — MEGA *(Easiest Setup)*
+
+No local software required. Just add your MEGA login credentials as GitHub secrets:
+
+1. Add your MEGA email as the **`MEGA_USER`** secret.
+2. Add your MEGA password as the **`MEGA_PASS`** secret.
+
+The workflow automatically configures `rclone` for MEGA on the fly.
+
+---
+
+## 🗂️ What Gets Backed Up?
+
+The backup syncs your entire **`/root`** directory, which includes:
+- 📁 Desktop files and folders
+- 🌐 Firefox browser profiles (bookmarks, history, cookies, saved passwords)
+- 🐍 Python scripts, `.txt` files, and any other files you create
+- ⚙️ Application configurations stored in `/root`
+
+System files, installed packages, and caches are **excluded** to keep backups fast and small.
+

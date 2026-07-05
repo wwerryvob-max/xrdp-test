@@ -13,22 +13,34 @@ jobs:
     timeout-minutes: 3600
 
     steps:
-      - name: Setup MEGA Backup & Start Container
+      - name: Setup Cloud Backup & Start Container
         env:
+          GDRIVE_CONF: ${{ secrets.GDRIVE_CONF }}
           MEGA_USER: ${{ secrets.MEGA_USER }}
           MEGA_PASS: ${{ secrets.MEGA_PASS }}
         run: |
           mkdir -p /home/runner/userdata
           
-          if [ -n "$MEGA_USER" ] && [ -n "$MEGA_PASS" ]; then
+          if [ -n "$GDRIVE_CONF" ]; then
+              echo "Google Drive configuration found. Installing rclone and restoring backup..."
+              sudo curl -s https://rclone.org/install.sh | sudo bash
+              mkdir -p ~/.config/rclone
+              echo "$GDRIVE_CONF" > ~/.config/rclone/rclone.conf
+              
+              echo "Downloading previous session data from Google Drive..."
+              rclone copy gdrive:rdp-backup /home/runner/userdata --exclude ".cache/**" || true
+              echo "BACKUP_REMOTE=gdrive" >> $GITHUB_ENV
+          elif [ -n "$MEGA_USER" ] && [ -n "$MEGA_PASS" ]; then
               echo "MEGA credentials found. Installing rclone and restoring backup..."
               sudo curl -s https://rclone.org/install.sh | sudo bash
               rclone config create mega mega user "$MEGA_USER" pass "$MEGA_PASS"
               
               echo "Downloading previous session data from MEGA..."
               rclone copy mega:rdp-backup /home/runner/userdata --exclude ".cache/**" || true
+              echo "BACKUP_REMOTE=mega" >> $GITHUB_ENV
           else
-              echo "No MEGA credentials found. Skipping backup restoration."
+              echo "No backup credentials found. Skipping backup restoration."
+              echo "BACKUP_REMOTE=none" >> $GITHUB_ENV
           fi
 
           echo "Starting Debian 11 Docker container..."
@@ -65,7 +77,6 @@ jobs:
       - name: Start Cloudflare Tunnel & Maintain Connection
         env:
           CF_TOKEN: ${{ secrets.CF_TOKEN }}
-          MEGA_USER: ${{ secrets.MEGA_USER }}
         run: |
           if [ -z "$CF_TOKEN" ]; then
               echo "Error: Secret 'CF_TOKEN' is missing."
@@ -90,13 +101,13 @@ jobs:
           
           END_TIME=$(($(date +%s) + 20700)) 
           
-          if [ -n "$MEGA_USER" ]; then
-              echo "Starting background MEGA backup sync..."
+          if [ "$BACKUP_REMOTE" != "none" ]; then
+              echo "Starting background $BACKUP_REMOTE backup sync..."
               (
                   while true; do
                       sleep 3600 # 1 hour
-                      echo "[$(date)] Syncing /root data to MEGA..."
-                      rclone sync /home/runner/userdata mega:rdp-backup --exclude ".cache/**" || true
+                      echo "[$(date)] Syncing /root data to $BACKUP_REMOTE..."
+                      rclone sync /home/runner/userdata "$BACKUP_REMOTE:rdp-backup" --exclude ".cache/**" || true
                   done
               ) &
           fi
@@ -106,9 +117,9 @@ jobs:
               sleep 60
           done
           
-          if [ -n "$MEGA_USER" ]; then
-              echo "Performing final backup before shutdown..."
-              rclone sync /home/runner/userdata mega:rdp-backup --exclude ".cache/**" || true
+          if [ "$BACKUP_REMOTE" != "none" ]; then
+              echo "Performing final backup to $BACKUP_REMOTE before shutdown..."
+              rclone sync /home/runner/userdata "$BACKUP_REMOTE:rdp-backup" --exclude ".cache/**" || true
           fi
 
       - name: 🔄 Auto-Restart Server
