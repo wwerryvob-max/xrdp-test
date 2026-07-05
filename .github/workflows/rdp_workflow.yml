@@ -60,7 +60,7 @@ jobs:
           
           export XDG_SESSION_DESKTOP=xfce
           export XDG_CURRENT_DESKTOP=XFCE
-          export XDG_CONFIG_DIRS=/etc/xdg/xdg-xubuntu:/etc/xdg
+          export XDG_CONFIG_DIRS=/etc/xdg/xdg-xubuntu:/etc/xdg:/etc
           
           exec dbus-launch --exit-with-session startxfce4
           EOF'
