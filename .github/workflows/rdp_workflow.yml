@@ -1,0 +1,112 @@
+name: Linux RDP (XFCE + Cloudflare + Firefox)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  ubuntu-rdp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3600
+
+    steps:
+      - name: Install XFCE Desktop, Firefox & XRDP
+        run: |
+          echo "Updating system..."
+          sudo apt update
+          
+          # Install Mozilla PPA and native Firefox
+          sudo apt install software-properties-common -y
+          sudo add-apt-repository ppa:mozillateam/ppa -y
+          sudo apt update
+          
+          echo "Installing XFCE and native Firefox ESR..."
+          sudo DEBIAN_FRONTEND=noninteractive apt install xfce4 xfce4-goodies xrdp dbus-x11 firefox-esr -y
+          
+          sudo adduser xrdp ssl-cert
+          sudo systemctl enable --now xrdp
+          
+          echo "Applying Firefox Sandbox Fix..."
+          sudo sed -i 's/^Exec=firefox-esr.*/Exec=firefox-esr --no-sandbox --disable-seccomp/' /usr/share/applications/firefox-esr.desktop
+
+      - name: Create RDP User & Apply Claude's Fix
+        env:
+          MY_SECRET_PASS: ${{ secrets.PASS }}
+        run: |
+          if [ -z "$MY_SECRET_PASS" ]; then
+              echo "Error: Secret 'PASS' is empty. Please add it in Repository Settings."
+              exit 1
+          fi
+          
+          echo "Creating RDP user..."
+          sudo useradd -m -s /bin/bash RDP
+          echo "RDP:$MY_SECRET_PASS" | sudo chpasswd
+          sudo usermod -aG sudo RDP
+          
+          echo "Applying XRDP/D-Bus Initialization Fix..."
+          # Recreate global startup script and explicitly start XFCE with its own D-Bus session
+          sudo bash -c 'cat > /etc/xrdp/startwm.sh << "EOF"
+          #!/bin/sh
+          if [ -r /etc/default/locale ]; then
+            . /etc/default/locale
+            export LANG LANGUAGE
+          fi
+          
+          unset DBUS_SESSION_BUS_ADDRESS
+          unset XDG_RUNTIME_DIR
+          
+          export XDG_SESSION_DESKTOP=xfce
+          export XDG_CURRENT_DESKTOP=XFCE
+          export XDG_CONFIG_DIRS=/etc/xdg/xdg-xubuntu:/etc/xdg
+          
+          exec dbus-launch --exit-with-session startxfce4
+          EOF'
+          
+          sudo chmod +x /etc/xrdp/startwm.sh
+          
+          echo "exec dbus-launch --exit-with-session startxfce4" | sudo tee /home/RDP/.xsession
+          sudo chown RDP:RDP /home/RDP/.xsession
+          
+          # Notice: We explicitly do NOT restart xrdp or dbus here!
+          # Restarting system-level services inside the GitHub Actions runner sabotages it.
+
+      - name: Start Cloudflare Tunnel & Maintain Connection
+        env:
+          CF_TOKEN: ${{ secrets.CF_TOKEN }}
+        run: |
+          if [ -z "$CF_TOKEN" ]; then
+              echo "Error: Secret 'CF_TOKEN' is missing."
+              exit 1
+          fi
+
+          echo "Downloading Cloudflared for Linux..."
+          curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared.deb
+          
+          echo "Installing and Starting Cloudflare Tunnel..."
+          sudo cloudflared service install $CF_TOKEN
+          
+          export CF_TOKEN=""
+          history -c
+          
+          echo -e "\n=== RDP ACCESS ==="
+          echo "Username: RDP"
+          echo "Password: (Hidden - Check your Secrets)"
+          echo -e "==================\n"
+          
+          END_TIME=$(($(date +%s) + 20700)) 
+          while [ $(date +%s) -lt $END_TIME ]; do
+              echo "[$(date)] Linux RDP Active - Session time remaining..."
+              sleep 300
+          done
+
+      - name: 🔄 Auto-Restart Server
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Triggering next workflow run..."
+          gh workflow run rdp_workflow.yml --repo ${{ github.repository }} --ref ${{ github.ref_name }}
