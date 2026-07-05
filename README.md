@@ -62,6 +62,50 @@ token = {"access_token":"ya29.xxxxxxxxxxxx","token_type":"Bearer","refresh_token
 
 ---
 
+#### 📱 On Mobile (Android via Termux)
+
+> [!TIP]
+> You can set up Google Drive backup entirely from your Android phone — no PC required!
+
+**Step A: Get the App**
+
+1. Download **Termux** from the [F-Droid store](https://f-droid.org/en/packages/com.termux/) — ⚠️ **do NOT use the Google Play version**, it is outdated and broken.
+2. Open Termux and run:
+   ```bash
+   pkg update && pkg upgrade -y
+   pkg install rclone -y
+   ```
+
+**Step B: Link Your Google Account**
+
+3. Start the rclone setup wizard:
+   ```bash
+   rclone config
+   ```
+4. Type `n` (New remote) and name it exactly **`gdrive`**.
+5. A large list of cloud providers appears. Find **Google Drive** (usually option `18` or `19`) and type that number.
+6. Leave `client_id` **blank** → press Enter.
+7. Leave `client_secret` **blank** → press Enter.
+8. For `scope`, type `1` (Full access to all files).
+9. Leave `root_folder_id` and `service_account_file` **blank** → press Enter both times.
+10. `Edit advanced config?` → type `n`.
+11. `Use web browser to authenticate?` → type `y`. It will output a URL starting with `http://127.0.0.1:53682/auth...`.
+12. Copy that URL and open it in **Chrome** on your phone.
+13. Log into your Google account and click **Allow**.
+14. Back in Termux, when asked `Configure as Shared Drive?` → type `n`.
+15. When asked if the config is OK → type `y`, then `q` to quit.
+
+**Step C: Extract and Copy the Config**
+
+16. Print your config to the screen:
+    ```bash
+    cat ~/.config/rclone/rclone.conf
+    ```
+17. Long-press to **select and copy** the entire `[gdrive]` block.
+18. Paste it as the value of the **`GDRIVE_CONF`** GitHub secret.
+
+---
+
 ### 🟠 Option B — MEGA *(Easiest Setup)*
 
 No local software required. Just add your MEGA login credentials as GitHub secrets:
