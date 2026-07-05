@@ -59,15 +59,6 @@ jobs:
           echo "Adding xrdp user to ssl-cert group..."
           docker exec debian-rdp bash -c "adduser xrdp ssl-cert"
 
-      - name: Build & Install XRDP Audio Module
-        run: |
-          echo "Enabling source repositories and installing audio dependencies..."
-          docker exec debian-rdp bash -c "echo 'deb-src http://deb.debian.org/debian bullseye main' > /etc/apt/sources.list.d/src.list && echo 'deb-src http://deb.debian.org/debian-security bullseye-security main' >> /etc/apt/sources.list.d/src.list && echo 'deb-src http://deb.debian.org/debian bullseye-updates main' >> /etc/apt/sources.list.d/src.list && apt update"
-          docker exec debian-rdp bash -c "DEBIAN_FRONTEND=noninteractive apt install -y dpkg-dev pulseaudio git build-essential autoconf libtool automake pkg-config libssl-dev libpam0g-dev libx11-dev libxfixes-dev libxrandr-dev libpulse-dev"
-          
-          echo "Compiling pulseaudio-module-xrdp..."
-          docker exec debian-rdp bash -c "cd /tmp && git clone --depth=1 https://github.com/neutrinolabs/pulseaudio-module-xrdp.git && cd pulseaudio-module-xrdp && DEBIAN_FRONTEND=noninteractive apt-get build-dep -y pulseaudio && apt-get source pulseaudio && ln -s pulseaudio-* pulseaudio.src && cd pulseaudio.src && meson build && cd .. && ./bootstrap && ./configure PULSE_DIR=/tmp/pulseaudio-module-xrdp/pulseaudio.src && make && make install"
-
       - name: Configure Root User & XRDP
         env:
           MY_SECRET_PASS: ${{ secrets.PASS }}
