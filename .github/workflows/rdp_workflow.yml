@@ -103,30 +103,31 @@ jobs:
           echo "Password: (Hidden - Check your Secrets)"
           echo -e "==================\n"
           
-          END_TIME=$(($(date +%s) + 20700)) 
-          
-          if [ "$BACKUP_REMOTE" != "none" ]; then
-              echo "Starting background $BACKUP_REMOTE backup sync..."
-              (
-                  while true; do
-                      sleep 3600 # 1 hour
-                      echo "[$(date)] Syncing /root data to $BACKUP_REMOTE..."
-                      sudo rclone --config /home/runner/.config/rclone/rclone.conf sync /home/runner/userdata "$BACKUP_REMOTE:rdp-backup" --exclude ".cache/**" || true
-                  done
-              ) &
-          fi
+          # Timer setup: Run for exactly 345 minutes (5 hours 45 minutes)
+          END_TIME=$(($(date +%s) + 20700))
+          echo "Runner will stay active until $(date -d @$END_TIME)"
           
           while [ $(date +%s) -lt $END_TIME ]; do
-              echo "[$(date)] Debian 11 RDP Active - Session time remaining..."
+              echo "[$(date)] Debian 11 RDP Active - Cancel workflow to terminate early"
               sleep 60
           done
           
-          if [ "$BACKUP_REMOTE" != "none" ]; then
-              echo "Performing final backup to $BACKUP_REMOTE before shutdown..."
+          echo "Time limit reached (5 hours 45 mins). Proceeding to shutdown & backup..."
+
+      - name: Final Cloud Backup
+        if: always()
+        env:
+          BACKUP_REMOTE: ${{ env.BACKUP_REMOTE }}
+        run: |
+          if [ "$BACKUP_REMOTE" != "none" ] && [ -n "$BACKUP_REMOTE" ]; then
+              echo "Performing final backup to $BACKUP_REMOTE..."
               sudo rclone --config /home/runner/.config/rclone/rclone.conf sync /home/runner/userdata "$BACKUP_REMOTE:rdp-backup" --exclude ".cache/**" || true
+              echo "Final backup complete."
+          else
+              echo "No backup remote configured. Skipping final backup."
           fi
 
-      - name: 🔄 Auto-Restart Server
+      - name: ðŸ”„ Auto-Restart Server
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
