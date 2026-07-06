@@ -54,7 +54,7 @@ jobs:
       - name: Install XFCE Desktop, Firefox & XRDP
         run: |
           echo "Updating system and installing dependencies..."
-          docker exec debian-rdp bash -c "apt update && DEBIAN_FRONTEND=noninteractive apt install -y xfce4 xfce4-goodies xrdp dbus-x11 firefox-esr sudo curl vlc xarchiver unzip zip p7zip-full ristretto xfce4-screenshooter simplescreenrecorder webp-pixbuf-loader"
+          docker exec debian-rdp bash -c "apt update && DEBIAN_FRONTEND=noninteractive apt install -y xfce4 xfce4-goodies xrdp dbus-x11 firefox-esr sudo curl vlc xarchiver unzip zip p7zip-full ristretto xfce4-screenshooter simplescreenrecorder webp-pixbuf-loader && apt remove -y xfce4-power-manager"
           
           echo "Adding xrdp user to ssl-cert group..."
           docker exec debian-rdp bash -c "adduser xrdp ssl-cert"
