@@ -127,7 +127,7 @@ jobs:
               echo "No backup remote configured. Skipping final backup."
           fi
 
-      - name: 🔄 Auto-Restart Server
+      - name: ðŸ”„ Auto-Restart Server
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
