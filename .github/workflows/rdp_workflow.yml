@@ -1,4 +1,4 @@
-name: Debian 11 RDP (XFCE + Cloudflare + Firefox)
+name: Debian 12 RDP (XFCE + Cloudflare + Firefox)
 
 on:
   workflow_dispatch:
@@ -43,9 +43,9 @@ jobs:
               echo "BACKUP_REMOTE=none" >> $GITHUB_ENV
           fi
 
-          echo "Starting Debian 11 Docker container..."
+          echo "Starting Debian 12 Docker container..."
           # Run container in background, expose port 3389, mount userdata to /root, and keep it running
-          docker run -d --name debian-rdp -p 3389:3389 -v /home/runner/userdata:/root debian:11 tail -f /dev/null
+          docker run -d --name debian-rdp -p 3389:3389 -v /home/runner/userdata:/root debian:12 tail -f /dev/null
           
           echo "Setting up Desktop and volume permissions..."
           docker exec debian-rdp bash -c "mkdir -p /root/Desktop/SavedFiles"
@@ -108,7 +108,7 @@ jobs:
           echo "Runner will stay active until $(date -d @$END_TIME)"
           
           while [ $(date +%s) -lt $END_TIME ]; do
-              echo "[$(date)] Debian 11 RDP Active - Cancel workflow to terminate early"
+              echo "[$(date)] Debian 12 RDP Active - Cancel workflow to terminate early"
               sleep 60
           done
           
